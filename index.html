@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Othello Web Game</title>
+    <title>Othello Web Game V2</title>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -25,9 +25,9 @@
             margin: 0;
         }
 
-        /* --- Screens --- */
+        /* --- Screens Logic (ปรับปรุงให้ชัวร์ขึ้น) --- */
         .screen {
-            display: none;
+            display: none !important; /* บังคับซ่อนถ้าไม่มีคลาส active */
             flex-direction: column;
             align-items: center;
             background: white;
@@ -38,8 +38,9 @@
             width: 400px;
         }
 
-        .active-screen {
-            display: flex;
+        /* เมื่อมี class active-screen ให้แสดงผล */
+        .screen.active-screen {
+            display: flex !important; 
         }
 
         /* --- Input Form --- */
@@ -56,7 +57,7 @@
             background-color: #333;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 1rem;
@@ -70,7 +71,8 @@
 
         /* --- Game Board Area --- */
         #game-screen {
-            width: auto;
+            max-width: 500px; 
+            width: 100%;
             background: transparent;
             box-shadow: none;
         }
@@ -90,13 +92,19 @@
         .player-score {
             display: flex;
             align-items: center;
-            padding: 5px 10px;
-            border-radius: 5px;
+            justify-content: space-between; /* ดันชื่อไปซ้าย คะแนนไปขวา */
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .player-score.active {
-            background-color: var(--highlight);
+            background-color: #fff9db; /* สีเหลืองอ่อน */
+            border-color: #e1c036;
             font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .disc-icon {
@@ -111,6 +119,25 @@
         .disc-icon.black { background: var(--player-black); }
         .disc-icon.white { background: var(--player-white); }
 
+        /* กล่องคะแนนแบบใหม่ (Badge) */
+        .score-badge {
+            background-color: rgba(0,0,0,0.1); /* สีพื้นหลังกล่องคะแนน */
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 12px; /* ทำมุมมน */
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-width: 25px;
+            text-align: center;
+            margin-left: 8px;
+        }
+        /* เปลี่ยนสีกล่องคะแนนเมื่อ Active */
+        .player-score.active .score-badge {
+            background-color: #fff; /* พื้นขาว */
+            color: #000;
+            border: 1px solid #e1c036;
+        }
+        /* --- Board Area (Fix Size) --- */
         .board {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -118,8 +145,9 @@
             background-color: var(--board-color);
             border: 5px solid var(--board-border);
             width: 100%;
-            max-width: 480px; /* Max size for desktop */
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 1 / 1; /* บังคับสี่เหลี่ยมจัตุรัส */
+            user-select: none;
+            /* เอา max-width ออก เพราะคุมที่ Container หลักแล้ว */
         }
 
         .cell {
@@ -140,16 +168,16 @@
             height: 80%;
             border-radius: 50%;
             transition: transform 0.3s ease-in-out;
+            box-shadow: 2px 2px 2px rgba(0,0,0,0.3);
         }
 
         .disc.black { background-color: var(--player-black); }
         .disc.white { background-color: var(--player-white); }
         
-        /* Valid move hint */
         .hint {
-            width: 20%;
-            height: 20%;
-            background-color: rgba(0,0,0,0.2);
+            width: 25%;
+            height: 25%;
+            background-color: rgba(0,0,0,0.3);
             border-radius: 50%;
         }
 
@@ -159,9 +187,10 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             background: rgba(0,0,0,0.6);
-            display: none;
+            display: none; /* เริ่มต้นซ่อนไว้ */
             justify-content: center;
             align-items: center;
+            z-index: 1000;
         }
 
         #result-box {
@@ -170,6 +199,7 @@
             border-radius: 10px;
             text-align: center;
             animation: popIn 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
 
         @keyframes popIn {
@@ -183,88 +213,103 @@
 <body>
 
     <div id="setup-screen" class="screen active-screen">
-        <h2>Othello Game</h2>
-        <p>กรุณาใส่ชื่อผู้เล่น</p>
-        <input type="text" id="p1-name" placeholder="ชื่อผู้เล่นฝ่ายดำ (Black)" value="Player 1">
-        <input type="text" id="p2-name" placeholder="ชื่อผู้เล่นฝ่ายขาว (White)" value="Player 2">
-        <button onclick="startGame()">เริ่มเกม</button>
+        <h2>OTHELLO Game</h2>
+        <input type="text" id="p1-name" placeholder="Black Player Name" value="Player A" maxlength="10">
+        <input type="text" id="p2-name" placeholder="White Player Name" value="Player B" maxlength="10">
+        <button type="button" onclick="startGame()">START</button>
     </div>
 
     <div id="game-screen" class="screen">
         <div class="scoreboard">
             <div id="score-p1" class="player-score active">
-                <span class="disc-icon black"></span>
-                <span id="name-display-1">Black</span>: <span id="score-1">2</span>
+                <div class="player-info">
+                    <span class="disc-icon black"></span>
+                    <span id="name-display-1" class="name-text">Black</span>
+                </div>
+                <div id="score-1" class="score-badge">2</div>
             </div>
             <div id="score-p2" class="player-score">
-                <span class="disc-icon white"></span>
-                <span id="name-display-2">White</span>: <span id="score-2">2</span>
+                <div class="player-info">
+                    <span class="disc-icon white"></span>
+                    <span id="name-display-2" class="name-text">White</span>
+                </div>
+                <div id="score-2" class="score-badge">2</div>
             </div>
         </div>
 
         <div id="board" class="board">
             </div>
 
-        <button onclick="restartSetup()" style="margin-top: 20px;">ออกเกม / เริ่มใหม่</button>
+        <button onclick="location.reload()" style="margin-top: 20px; background-color: #d9534f;">RESET </button>
     </div>
 
     <div id="modal-overlay">
         <div id="result-box">
             <h2 id="winner-text">Winner!</h2>
-            <p id="final-score">Black: 30 - White: 34</p>
-            <button onclick="startGame()">เล่นอีกครั้ง (ชื่อเดิม)</button>
+            <p id="final-score">Score here</p>
+            <button onclick="resetGameKeepNames()"> Retry </button>
             <br>
-            <button onclick="restartSetup()" style="background: #888; margin-top: 5px;">กลับหน้าแรก</button>
+            <button onclick="location.reload()" style="background: #888; margin-top: 5px;">Main menu</button>
         </div>
     </div>
 
     <script>
-        // --- Game Config & State ---
+        // --- Global Variables ---
         const ROWS = 8;
         const COLS = 8;
-        let board = [];
-        let currentPlayer = 1; // 1 = Black, 2 = White
-        let names = { 1: "Black", 2: "White" };
-        let scores = { 1: 2, 2: 2 };
-        let gameActive = false;
-
-        // Directions for Othello logic (8 neighbors)
         const DIRECTIONS = [
             [-1, -1], [-1, 0], [-1, 1],
             [0, -1],           [0, 1],
             [1, -1],  [1, 0],  [1, 1]
         ];
 
-        // --- Core Functions ---
+        let board = [];
+        let currentPlayer = 1; // 1 = Black, 2 = White
+        let names = { 1: "Black", 2: "White" };
+        let scores = { 1: 2, 2: 2 };
+        let gameActive = false;
+
+        // --- Functions ---
 
         function startGame() {
-            // Get Names
-            const p1Input = document.getElementById('p1-name').value.trim();
-            const p2Input = document.getElementById('p2-name').value.trim();
-            names[1] = p1Input || "Black";
-            names[2] = p2Input || "White";
+            try {
+                // 1. Get Names
+                const p1Input = document.getElementById('p1-name').value.trim();
+                const p2Input = document.getElementById('p2-name').value.trim();
+                names[1] = p1Input || "Black";
+                names[2] = p2Input || "White";
 
-            // Update UI Names
-            document.getElementById('name-display-1').innerText = names[1];
-            document.getElementById('name-display-2').innerText = names[2];
+                // 2. Update Names on UI
+                document.getElementById('name-display-1').innerText = names[1];
+                document.getElementById('name-display-2').innerText = names[2];
 
-            // Switch Screens
-            document.getElementById('setup-screen').classList.remove('active-screen');
+                // 3. Switch Screens (ใช้ classList อย่างเดียวเพื่อความชัวร์)
+                document.getElementById('setup-screen').classList.remove('active-screen');
+                document.getElementById('game-screen').classList.add('active-screen');
+                
+                // Hide Modal just in case
+                document.getElementById('modal-overlay').style.display = 'none';
+
+                console.log("Game Starting...");
+                // 4. Init Board
+                initBoard();
+                
+            } catch (err) {
+                alert("เกิดข้อผิดพลาด: " + err.message);
+                console.error(err);
+            }
+        }
+
+        function resetGameKeepNames() {
             document.getElementById('modal-overlay').style.display = 'none';
-            document.getElementById('game-screen').classList.add('active-screen');
-
             initBoard();
         }
 
-        function restartSetup() {
-            document.getElementById('game-screen').classList.remove('active-screen');
-            document.getElementById('modal-overlay').style.display = 'none';
-            document.getElementById('setup-screen').classList.add('active-screen');
-        }
-
         function initBoard() {
+            // Reset Board Array
             board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
-            // Starting positions
+            
+            // Standard Othello Setup
             board[3][3] = 2; // White
             board[3][4] = 1; // Black
             board[4][3] = 1; // Black
@@ -272,36 +317,36 @@
             
             currentPlayer = 1;
             gameActive = true;
+            
             updateScore();
             renderBoard();
         }
 
         function renderBoard() {
             const boardEl = document.getElementById('board');
-            boardEl.innerHTML = '';
+            boardEl.innerHTML = ''; // Clear previous board
 
-            // Check valid moves for current player to draw hints
             const validMoves = getValidMoves(currentPlayer);
 
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.dataset.r = r;
-                    cell.dataset.c = c;
                     
-                    // Render Disc
+                    // Render Piece
                     if (board[r][c] !== 0) {
                         const disc = document.createElement('div');
                         disc.className = `disc ${board[r][c] === 1 ? 'black' : 'white'}`;
                         cell.appendChild(disc);
-                    } else {
-                        // Render Hint if valid move
-                        if (validMoves.some(m => m.r === r && m.c === c)) {
+                    } 
+                    // Render Hint & Click Event
+                    else {
+                        const isValid = validMoves.some(m => m.r === r && m.c === c);
+                        if (isValid) {
                             const hint = document.createElement('div');
                             hint.className = 'hint';
                             cell.appendChild(hint);
-                            cell.onclick = () => handleMove(r, c); // Only clickable if valid
+                            cell.onclick = () => handleMove(r, c); // Clickable only if valid
                         }
                     }
                     boardEl.appendChild(cell);
@@ -313,4 +358,126 @@
         function handleMove(r, c) {
             if (!gameActive) return;
 
-            const flipped = getFlippedDiscs
+            const flipped = getFlippedDiscs(r, c, currentPlayer);
+            if (flipped.length > 0) {
+                // Place disc
+                board[r][c] = currentPlayer;
+                // Flip captured discs
+                flipped.forEach(pos => {
+                    board[pos.r][pos.c] = currentPlayer;
+                });
+                
+                // Audio Effect (Optional - just visual for now)
+                // console.log("Placed at", r, c);
+
+                switchTurn();
+            }
+        }
+
+        function switchTurn() {
+            updateScore(); // Update score immediately after move
+            
+            const nextPlayer = currentPlayer === 1 ? 2 : 1;
+            const validMovesNext = getValidMoves(nextPlayer);
+
+            if (validMovesNext.length > 0) {
+                currentPlayer = nextPlayer;
+                renderBoard();
+            } else {
+                // Next player has no moves -> PASS
+                const validMovesCurrent = getValidMoves(currentPlayer);
+                if (validMovesCurrent.length === 0) {
+                    // Both have no moves -> Game Over
+                    renderBoard(); // Render last state
+                    setTimeout(endGame, 500); // Delay slightly for effect
+                } else {
+                    // Only next player passes
+                    alert(`ฝ่าย ${names[nextPlayer]} ไม่มีตาเดิน! ต้องผ่าน (Pass) กลับมาที่ ${names[currentPlayer]}`);
+                    renderBoard(); // Re-render for current player again
+                }
+            }
+        }
+
+        function getValidMoves(player) {
+            let moves = [];
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 0) {
+                        if (getFlippedDiscs(r, c, player).length > 0) {
+                            moves.push({r, c});
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getFlippedDiscs(r, c, player) {
+            let flipped = [];
+            const opponent = player === 1 ? 2 : 1;
+
+            for (let [dr, dc] of DIRECTIONS) {
+                let tempFlipped = [];
+                let nr = r + dr, nc = c + dc;
+                
+                while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === opponent) {
+                    tempFlipped.push({r: nr, c: nc});
+                    nr += dr;
+                    nc += dc;
+                }
+
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === player) {
+                    flipped = flipped.concat(tempFlipped);
+                }
+            }
+            return flipped;
+        }
+
+        function updateScore() {
+            let p1 = 0, p2 = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === 1) p1++;
+                    else if (board[r][c] === 2) p2++;
+                }
+            }
+            scores[1] = p1;
+            scores[2] = p2;
+            document.getElementById('score-1').innerText = p1;
+            document.getElementById('score-2').innerText = p2;
+
+            if (p1 + p2 === 64) setTimeout(endGame, 500);
+        }
+
+        function updateTurnIndicator() {
+            const s1 = document.getElementById('score-p1');
+            const s2 = document.getElementById('score-p2');
+            if (currentPlayer === 1) {
+                s1.classList.add('active');
+                s2.classList.remove('active');
+            } else {
+                s1.classList.remove('active');
+                s2.classList.add('active');
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            let winnerText = "";
+            const p1 = scores[1];
+            const p2 = scores[2];
+
+            if (p1 > p2) winnerText = `${names[1]} WIN!`;
+            else if (p2 > p1) winnerText = `${names[2]} WIN!`;
+            else winnerText = "DRAW!";
+
+            document.getElementById('winner-text').innerText = winnerText;
+            document.getElementById('final-score').innerText = `${names[1]}: ${p1} - ${names[2]}: ${p2}`;
+            
+            // Show Modal with Flex
+            const modal = document.getElementById('modal-overlay');
+            modal.style.display = 'flex'; 
+        }
+    </script>
+</body>
+</html>
