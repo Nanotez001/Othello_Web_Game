@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Othello Web Game</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --board-color: #2e8b57;
+            --board-border: #1e5c39;
+            --player-black: #000;
+            --player-white: #fff;
+            --highlight: #f4d03f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .active-screen {
+            display: flex;
+        }
+
+        /* --- Input Form --- */
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        /* --- Game Board Area --- */
+        #game-screen {
+            width: auto;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 15px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .player-score {
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .player-score.active {
+            background-color: var(--highlight);
+            font-weight: bold;
+        }
+
+        .disc-icon {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .disc-icon.black { background: var(--player-black); }
+        .disc-icon.white { background: var(--player-white); }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            background-color: var(--board-color);
+            border: 5px solid var(--board-border);
+            width: 100%;
+            max-width: 480px; /* Max size for desktop */
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell {
+            border: 1px solid rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .disc {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .disc.black { background-color: var(--player-black); }
+        .disc.white { background-color: var(--player-white); }
+        
+        /* Valid move hint */
+        .hint {
+            width: 20%;
+            height: 20%;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 50%;
+        }
+
+        /* --- Modal --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #result-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        h1, h2, h3 { margin: 0 0 15px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen" class="screen active-screen">
+        <h2>Othello Game</h2>
+        <p>กรุณาใส่ชื่อผู้เล่น</p>
+        <input type="text" id="p1-name" placeholder="ชื่อผู้เล่นฝ่ายดำ (Black)" value="Player 1">
+        <input type="text" id="p2-name" placeholder="ชื่อผู้เล่นฝ่ายขาว (White)" value="Player 2">
+        <button onclick="startGame()">เริ่มเกม</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="scoreboard">
+            <div id="score-p1" class="player-score active">
+                <span class="disc-icon black"></span>
+                <span id="name-display-1">Black</span>: <span id="score-1">2</span>
+            </div>
+            <div id="score-p2" class="player-score">
+                <span class="disc-icon white"></span>
+                <span id="name-display-2">White</span>: <span id="score-2">2</span>
+            </div>
+        </div>
+
+        <div id="board" class="board">
+            </div>
+
+        <button onclick="restartSetup()" style="margin-top: 20px;">ออกเกม / เริ่มใหม่</button>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="result-box">
+            <h2 id="winner-text">Winner!</h2>
+            <p id="final-score">Black: 30 - White: 34</p>
+            <button onclick="startGame()">เล่นอีกครั้ง (ชื่อเดิม)</button>
+            <br>
+            <button onclick="restartSetup()" style="background: #888; margin-top: 5px;">กลับหน้าแรก</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Config & State ---
+        const ROWS = 8;
+        const COLS = 8;
+        let board = [];
+        let currentPlayer = 1; // 1 = Black, 2 = White
+        let names = { 1: "Black", 2: "White" };
+        let scores = { 1: 2, 2: 2 };
+        let gameActive = false;
+
+        // Directions for Othello logic (8 neighbors)
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        // --- Core Functions ---
+
+        function startGame() {
+            // Get Names
+            const p1Input = document.getElementById('p1-name').value.trim();
+            const p2Input = document.getElementById('p2-name').value.trim();
+            names[1] = p1Input || "Black";
+            names[2] = p2Input || "White";
+
+            // Update UI Names
+            document.getElementById('name-display-1').innerText = names[1];
+            document.getElementById('name-display-2').innerText = names[2];
+
+            // Switch Screens
+            document.getElementById('setup-screen').classList.remove('active-screen');
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('game-screen').classList.add('active-screen');
+
+            initBoard();
+        }
+
+        function restartSetup() {
+            document.getElementById('game-screen').classList.remove('active-screen');
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('setup-screen').classList.add('active-screen');
+        }
+
+        function initBoard() {
+            board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+            // Starting positions
+            board[3][3] = 2; // White
+            board[3][4] = 1; // Black
+            board[4][3] = 1; // Black
+            board[4][4] = 2; // White
+            
+            currentPlayer = 1;
+            gameActive = true;
+            updateScore();
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            // Check valid moves for current player to draw hints
+            const validMoves = getValidMoves(currentPlayer);
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    
+                    // Render Disc
+                    if (board[r][c] !== 0) {
+                        const disc = document.createElement('div');
+                        disc.className = `disc ${board[r][c] === 1 ? 'black' : 'white'}`;
+                        cell.appendChild(disc);
+                    } else {
+                        // Render Hint if valid move
+                        if (validMoves.some(m => m.r === r && m.c === c)) {
+                            const hint = document.createElement('div');
+                            hint.className = 'hint';
+                            cell.appendChild(hint);
+                            cell.onclick = () => handleMove(r, c); // Only clickable if valid
+                        }
+                    }
+                    boardEl.appendChild(cell);
+                }
+            }
+            updateTurnIndicator();
+        }
+
+        function handleMove(r, c) {
+            if (!gameActive) return;
+
+            const flipped = getFlippedDiscs
